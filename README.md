@@ -1,13 +1,14 @@
 # Seizure During Craniotomy
 
-Single-page static site hosted on GitHub Pages, covering intraoperative
-seizure management during craniotomy.
+Static site hosted on GitHub Pages, covering intraoperative seizure
+management during craniotomy, with an interactive crisis simulator.
 
 ## Project layout
 
 ```
 conference/
-├── index.html          # the whole site — edit this directly
+├── index.html           # Seizure Management page — edit this directly
+├── simulator.html        # Simulator tab — self-contained (own inline CSS/JS)
 ├── assets/
 │   ├── style.css
 │   ├── gaba-receptor.svg   # brand mark + favicon
@@ -17,7 +18,12 @@ conference/
 └── .nojekyll             # serve files as-is on GitHub Pages
 ```
 
-There is no build step or generator — `index.html` is hand-edited plain HTML.
+There is no build step or generator — both pages are hand-edited plain HTML.
+`index.html` uses the shared `assets/style.css`; `simulator.html` is a
+self-contained single-file app (its own `<style>`/`<script>`), sharing only
+the top nav tabs and site favicon. It is courtesy of Soowon Lee, MD, PhD
+(Dept. of Anesthesiology & Pain Medicine, Seoul National University Bundang
+Hospital) — credited on the page itself, don't remove that.
 
 ## Deploying to GitHub Pages
 

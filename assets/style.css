@@ -95,6 +95,41 @@ a:hover { text-decoration: underline; }
   letter-spacing: .08em;
 }
 
+/* ---------- Tabs ---------- */
+.site-tabs {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.site-tabs .container { display: flex; gap: 4px; }
+.site-tabs a {
+  display: inline-block;
+  padding: 14px 18px;
+  font-weight: 600;
+  font-size: .92rem;
+  color: var(--muted);
+  border-bottom: 3px solid transparent;
+}
+.site-tabs a:hover { color: var(--teal-700); text-decoration: none; }
+.site-tabs a.active { color: var(--teal-700); border-bottom-color: var(--teal-500); }
+
+/* ---------- Simulator promo ---------- */
+.simulator-promo {
+  margin: 0 0 40px;
+  padding: 22px 24px;
+  background: linear-gradient(135deg, var(--teal-050), #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.simulator-promo h2 { margin: 0 0 6px; font-size: 1.15rem; }
+.simulator-promo p { margin: 0 0 4px; }
+.simulator-promo .credit { font-size: .85rem; color: var(--muted); }
+.simulator-promo .btn {
+  display: inline-block; margin-top: 12px; padding: 10px 18px;
+  background: var(--teal-600); color: #fff; border-radius: 10px; font-weight: 700;
+}
+.simulator-promo .btn:hover { background: var(--teal-700); text-decoration: none; }
+
 /* ---------- Hero ---------- */
 .hero {
   background:
