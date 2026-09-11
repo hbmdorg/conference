@@ -128,9 +128,36 @@
   /* Stage view (projector): simulator only, no script/controls */
   body.stage .saypanel{display:none !important}
   body.stage #facBtn, body.stage #scriptBtn, body.stage #presenterBtn{display:none !important}
+  /* Small-screen / portrait gate: this simulator needs a desktop-sized landscape display */
+  .mobilegate{display:none}
+  html.mobileblock .mobilegate{display:flex}
+  html.mobileblock .sitenav,html.mobileblock #app,html.mobileblock .fac,html.mobileblock .facbtn,
+  html.mobileblock .badge,html.mobileblock .startcard{display:none !important}
+  .mobilegate{position:fixed;inset:0;z-index:1000;background:var(--bg);color:var(--txt);
+    align-items:center;justify-content:center;padding:32px;text-align:center}
+  .mobilegate .box{max-width:380px}
+  .mobilegate .ico{font-size:44px;margin-bottom:14px}
+  .mobilegate h1{font-size:19px;margin:0 0 10px}
+  .mobilegate p{font-size:14.5px;line-height:1.55;color:#aebccf;margin:0 0 8px}
+  .mobilegate a{color:#7fb0ff}
 </style>
 </head>
 <body class="noscript">
+<script>
+  (function(){
+    function mobileLike(){ return window.innerHeight>window.innerWidth || window.innerWidth<860; }
+    document.documentElement.classList.toggle('mobileblock', mobileLike());
+  })();
+</script>
+<div class="mobilegate">
+  <div class="box">
+    <div class="ico">🖥️</div>
+    <h1>This simulator needs a desktop or laptop</h1>
+    <p>The live monitor, waveforms, and facilitator controls are laid out for a larger landscape screen and don't work well on a phone or a narrow/portrait window.</p>
+    <p>Please reopen this page on a desktop or laptop computer.</p>
+    <p style="margin-top:16px;font-size:13px"><a href="index.html">← Back to Seizure Management</a></p>
+  </div>
+</div>
 <nav class="sitenav">
   <div class="tabs">
     <a href="index.html">Seizure Management</a>
@@ -314,7 +341,14 @@ const waves={
   co2:new Wave('c-co2','#ffd23f'),
   eeg:new Wave('c-eeg','#c58bff')
 };
-window.addEventListener('resize',()=>{ for(const k in waves) waves[k].resize(); });
+function checkMobileGate(){
+  const wasBlocked=document.documentElement.classList.contains('mobileblock');
+  const blocked=window.innerHeight>window.innerWidth || window.innerWidth<860;
+  document.documentElement.classList.toggle('mobileblock', blocked);
+  if(wasBlocked && !blocked){ for(const k in waves) waves[k].resize(); }   // canvases were display:none, had 0 size
+}
+window.addEventListener('resize',()=>{ checkMobileGate(); for(const k in waves) waves[k].resize(); });
+window.addEventListener('orientationchange',checkMobileGate);
 
 /* ---------- Signal generators ---------- */
 const PPS=220;                 // samples/pixels per second
