@@ -25,6 +25,8 @@
   .sitenav .tabs a.active{background:#182234;border-color:#2a3a54;color:#fff}
   .sitenav .credit{font-size:11.5px;color:#8091a7;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .sitenav .credit b{color:#c9d6e6}
+  body.stage .sitenav{display:none}
+  body.stage{--nav-h:0px}
   #app{display:flex;flex-direction:column;height:calc(100vh - var(--nav-h))}
   /* top bar */
   .topbar{display:flex;align-items:center;justify-content:space-between;
@@ -115,10 +117,47 @@
   .saypanel .sayguide .glbl{color:#d8b46a;font-weight:700;margin-right:6px}
   body.noscript .saypanel{display:none}
   .facbtn.script{right:120px;background:#191510;border-color:#3a3322;color:#e6c98a}
-  @media (max-width:520px){ .sitenav .credit{display:none} }
+  .facbtn.presenter-btn{right:214px;background:#0e1c30;border-color:#2a3a54;color:#bcd3ee}
+  /* Presenter view (facilitator's own screen): big readable script */
+  body.presenter .saypanel{display:block !important;background:#1c1710;border-left-width:4px}
+  body.presenter .saypanel .saytext{font-size:23px;line-height:1.5}
+  body.presenter .saypanel .sayguide{font-size:18.5px}
+  body.presenter .console{max-height:60vh}
+  body.presenter .scenario{font-size:15px;opacity:.85}
+  body.presenter .prompt{font-size:13.5px}
+  /* Stage view (projector): simulator only, no script/controls */
+  body.stage .saypanel{display:none !important}
+  body.stage #facBtn, body.stage #scriptBtn, body.stage #presenterBtn{display:none !important}
+  /* Small-screen / portrait gate: this simulator needs a desktop-sized landscape display */
+  .mobilegate{display:none}
+  html.mobileblock .mobilegate{display:flex}
+  html.mobileblock .sitenav,html.mobileblock #app,html.mobileblock .fac,html.mobileblock .facbtn,
+  html.mobileblock .badge,html.mobileblock .startcard{display:none !important}
+  .mobilegate{position:fixed;inset:0;z-index:1000;background:var(--bg);color:var(--txt);
+    align-items:center;justify-content:center;padding:32px;text-align:center}
+  .mobilegate .box{max-width:380px}
+  .mobilegate .ico{font-size:44px;margin-bottom:14px}
+  .mobilegate h1{font-size:19px;margin:0 0 10px}
+  .mobilegate p{font-size:14.5px;line-height:1.55;color:#aebccf;margin:0 0 8px}
+  .mobilegate a{color:#7fb0ff}
 </style>
 </head>
 <body class="noscript">
+<script>
+  (function(){
+    function mobileLike(){ return window.innerHeight>window.innerWidth || window.innerWidth<860; }
+    document.documentElement.classList.toggle('mobileblock', mobileLike());
+  })();
+</script>
+<div class="mobilegate">
+  <div class="box">
+    <div class="ico">🖥️</div>
+    <h1>This simulator needs a desktop or laptop</h1>
+    <p>The live monitor, waveforms, and facilitator controls are laid out for a larger landscape screen and don't work well on a phone or a narrow/portrait window.</p>
+    <p>Please reopen this page on a desktop or laptop computer.</p>
+    <p style="margin-top:16px;font-size:13px"><a href="index.html">← Back to Seizure Management</a></p>
+  </div>
+</div>
 <nav class="sitenav">
   <div class="tabs">
     <a href="index.html">Seizure Management</a>
@@ -171,6 +210,7 @@
 </div>
 
 <div class="badge" id="badge">⚠ SEIZURE</div>
+<button class="facbtn presenter-btn" id="presenterBtn" title="Open a second window for the projector; this screen becomes your script view">🖥 Presenter view</button>
 <button class="facbtn script" id="scriptBtn">🎤 Script (S)</button>
 <button class="facbtn" id="facBtn">⚙ Facilitator (F)</button>
 <div class="fac" id="fac">
@@ -212,11 +252,18 @@
     <p style="color:#8ea3bd;font-size:12.5px">Three phases: <b>① recognize the seizure</b> → <b>② terminate it (non-pharmacological + pharmacological)</b> → <b>③ rescue the airway</b> as SpO₂ and ORi fall. A facilitator can also drive events from the ⚙ panel (press <span class="kbd">F</span>).</p>
     <button class="go" id="goBtn">Start simulation ▶</button>
     <button class="go" id="primerBtn" style="background:#3b2a6b;margin-left:8px">📚 ECoG feature primer</button>
+    <button class="go" id="presenterBtn2" style="background:#0e1c30;margin-left:8px">🖥 Presenter view (2 screens)</button>
+    <p style="color:#6f8093;font-size:11.5px;margin-top:12px">Presenter view opens a second window — drag it to the projector and make it full-screen. It shows only the simulator; this window keeps your script and controls.</p>
   </div>
 </div>
 
 <script>
 "use strict";
+/* ===== Presenter / Stage dual-screen ===== */
+const URLV = new URLSearchParams(location.search).get('view');
+const IS_STAGE = (URLV === 'stage');
+let stageWin = null;
+function broadcast(msg){ if(stageWin && !stageWin.closed){ try{ stageWin.postMessage(msg,'*'); }catch(e){} } }
 /* ============================================================
    AWAKE CRANIOTOMY SEIZURE / AIRWAY SIMULATOR
    Single-file prototype. All physiology is illustrative for
@@ -294,7 +341,14 @@ const waves={
   co2:new Wave('c-co2','#ffd23f'),
   eeg:new Wave('c-eeg','#c58bff')
 };
-window.addEventListener('resize',()=>{ for(const k in waves) waves[k].resize(); });
+function checkMobileGate(){
+  const wasBlocked=document.documentElement.classList.contains('mobileblock');
+  const blocked=window.innerHeight>window.innerWidth || window.innerWidth<860;
+  document.documentElement.classList.toggle('mobileblock', blocked);
+  if(wasBlocked && !blocked){ for(const k in waves) waves[k].resize(); }   // canvases were display:none, had 0 size
+}
+window.addEventListener('resize',()=>{ checkMobileGate(); for(const k in waves) waves[k].resize(); });
+window.addEventListener('orientationchange',checkMobileGate);
 
 /* ---------- Signal generators ---------- */
 const PPS=220;                 // samples/pixels per second
@@ -866,6 +920,7 @@ function goto(key,isBack){
     b.innerHTML='<span class="tag">'+tag+'</span>'+o.l;
     b.onclick=()=>choose(o,b); box.appendChild(b);
   });
+  broadcast({t:'goto', key});
 }
 function choose(o,btn){
   const fb=$('fb');
@@ -953,6 +1008,7 @@ function showPrimer(i,isBack){
   $('fb').className='fb'; $('fb').innerHTML='';
   const nb=$('nextBtn'); nb.classList.remove('hidden'); nb.textContent='▶ Start the case';
   nb.onclick=()=>{ eegMode='background'; goto('start'); };
+  broadcast({t:'primer', idx:primerIdx});
 }
 
 /* ---------- Main loop ---------- */
@@ -973,12 +1029,12 @@ function loop(now){
 $('backBtn').onclick=()=>back();
 $('homeBtn').onclick=()=>location.reload();
 $('sndBtn').onclick=()=>toggleAudio();
-$('pauseBtn').onclick=()=>togglePause();
-$('slowBtn').onclick=()=>changeDesatRate(1/1.5);
-$('fastBtn').onclick=()=>changeDesatRate(1.5);
+$('pauseBtn').onclick=()=>{ togglePause(); broadcast({t:'pause'}); };
+$('slowBtn').onclick=()=>{ changeDesatRate(1/1.5); broadcast({t:'rate',f:1/1.5}); };
+$('fastBtn').onclick=()=>{ changeDesatRate(1.5); broadcast({t:'rate',f:1.5}); };
 $('facBtn').onclick=()=>$('fac').classList.toggle('open');
 $('scriptBtn').onclick=()=>document.body.classList.toggle('noscript');
-document.querySelectorAll('.fac [data-ev]').forEach(b=>b.onclick=()=>fire(b.dataset.ev));
+document.querySelectorAll('.fac [data-ev]').forEach(b=>b.onclick=()=>{ fire(b.dataset.ev); broadcast({t:'fire',ev:b.dataset.ev}); });
 document.querySelectorAll('.fac [data-jump]').forEach(b=>b.onclick=()=>{
   const p=b.dataset.jump;
   if(p==='primer') showPrimer(0);
@@ -992,9 +1048,9 @@ document.querySelectorAll('.fac [data-jump]').forEach(b=>b.onclick=()=>{
 window.addEventListener('keydown',e=>{
   if(e.key==='f'||e.key==='F') $('fac').classList.toggle('open');
   if(e.key==='s'||e.key==='S') document.body.classList.toggle('noscript');
-  if(e.code==='Space'){ e.preventDefault(); togglePause(); }
-  if(e.key==='ArrowUp'){ e.preventDefault(); changeDesatRate(1.5); }      // faster desat
-  if(e.key==='ArrowDown'){ e.preventDefault(); changeDesatRate(1/1.5); } // slower desat
+  if(e.code==='Space'){ e.preventDefault(); togglePause(); broadcast({t:'pause'}); }
+  if(e.key==='ArrowUp'){ e.preventDefault(); changeDesatRate(1.5); broadcast({t:'rate',f:1.5}); }      // faster desat
+  if(e.key==='ArrowDown'){ e.preventDefault(); changeDesatRate(1/1.5); broadcast({t:'rate',f:1/1.5}); } // slower desat
   // Left/Right arrows: navigate primer cards, or Back / Continue in the case
   if(e.key==='ArrowRight'){ e.preventDefault();
     if(step && step.primer){ showPrimer(primerIdx+1); }
@@ -1019,6 +1075,48 @@ $('primerBtn').onclick=()=>{
   for(const k in waves) waves[k].resize();
   showPrimer(0);
 };
+
+/* ---------- Presenter / Stage dual-screen ---------- */
+function enterPresenter(){
+  document.body.classList.remove('noscript');
+  document.body.classList.add('presenter');
+  if(!stageWin || stageWin.closed){
+    stageWin = window.open(location.pathname + '?view=stage', 'awakeStage');
+  } else { stageWin.focus(); }
+}
+function currentStateMsg(){
+  if(current && current.primer!==undefined) return {t:'primer', idx:current.primer};
+  if(current && current.scen!==undefined)   return {t:'goto',   key:current.scen};
+  return null;
+}
+const presBtn=$('presenterBtn'); if(presBtn) presBtn.onclick=enterPresenter;
+const presBtn2=$('presenterBtn2'); if(presBtn2) presBtn2.onclick=enterPresenter;
+
+window.addEventListener('message',(e)=>{
+  const m=e.data||{}; if(!m || !m.t) return;
+  if(!IS_STAGE){
+    // presenter side: stage window announced it is ready → push current state
+    if(m.t==='hello'){
+      broadcast({t:'starthide'});
+      const st=currentStateMsg(); if(st) broadcast(st);
+    }
+    return;
+  }
+  // stage side (follower) — apply commands from presenter
+  const hideStart=()=>{ const sc=$('startcard'); if(sc) sc.style.display='none'; for(const k in waves) waves[k].resize(); };
+  if(m.t==='starthide'){ hideStart(); }
+  else if(m.t==='goto'){ hideStart(); goto(m.key); }
+  else if(m.t==='primer'){ hideStart(); showPrimer(m.idx); }
+  else if(m.t==='fire'){ fire(m.ev); }
+  else if(m.t==='rate'){ changeDesatRate(m.f); }
+  else if(m.t==='pause'){ togglePause(); }
+});
+
+if(IS_STAGE){
+  document.body.classList.add('stage');
+  try{ if(window.opener) window.opener.postMessage({t:'hello'},'*'); }catch(_){}
+}
+
 requestAnimationFrame(loop);
 </script>
 </body>
